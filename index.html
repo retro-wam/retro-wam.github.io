@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RetroWAM: World Action Models Self-Calibrate Their Robots by Reading, Not Imagining</title>
+  <meta name="description" content="RetroWAM runs a world action model in reverse on the real executed video to read out what the robot actually did, then identifies and corrects the robot's action interface online, with no calibration, training or extra hardware.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="RetroWAM: World Action Models Self-Calibrate Their Robots by Reading, Not Imagining">
+  <meta property="og:description" content="A world action model, run in reverse on the real video, reads what the robot actually did and calibrates the robot online.">
+  <meta property="og:url" content="https://retro-wam.github.io/">
+  <meta property="og:image" content="https://retro-wam.github.io/static/images/thumbnail.png?v=1">
+  <meta property="og:image:width" content="2400">
+  <meta property="og:image:height" content="1256">
+  <meta property="og:image:alt" content="RetroWAM project page: title, author, and a frozen world action model next to RetroWAM on the same LIBERO task with the robot's command frame turned by 90 degrees">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://retro-wam.github.io/static/images/thumbnail.png?v=1">
+  <link rel="icon" href="static/images/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.4/css/academicons.min.css">
+  <!-- Bump ?v= whenever style.css changes so browsers don't keep an old cached copy. -->
+  <link rel="stylesheet" href="static/css/style.css?v=1">
+</head>
+<body>
+
+<header class="header">
+  <h1 class="title"><span class="name">RetroWAM</span>: World Action Models Self-Calibrate<br class="br-wide"> Their Robots by Reading, Not Imagining</h1>
+
+  <p class="authors">
+    <span class="author"><a href="https://austinjiang.com" target="_blank" rel="noopener">Austin Jiang</a></span>
+  </p>
+  <p class="affiliations">
+    <span>University of Waterloo</span>
+  </p>
+
+  <div class="buttons">
+    <!-- When available, change these <span> elements to <a href="..."> and drop "Coming Soon". -->
+    <span class="button soon" title="Coming soon">
+      <i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>Paper (Coming Soon)</span>
+    </span>
+    <span class="button soon" title="Coming soon">
+      <i class="ai ai-arxiv" aria-hidden="true"></i><span>arXiv (Coming Soon)</span>
+    </span>
+    <span class="button soon" title="Coming soon">
+      <i class="fa-brands fa-github" aria-hidden="true"></i><span>Code (Coming Soon)</span>
+    </span>
+  </div>
+</header>
+
+<main>
+
+  <section class="teaser">
+    <figure class="teaser-video-figure">
+      <video class="teaser-video" autoplay muted loop playsinline preload="auto"
+             poster="static/videos/retrowam_teaser_poster.jpg" width="1280" height="600"
+             aria-label="A LIBERO robot that turns every command by 90 degrees and reports its state as commanded: the reported path follows the command while the arm moves off; the frozen world action model fails, RetroWAM reaches the goal; more tasks under the turned frame and a reversed gripper.">
+        <source src="static/videos/retrowam_teaser.mp4" type="video/mp4">
+      </video>
+      <figcaption>
+      A robot that does not do what the policy says. It executes every command turned by 90&deg; and reports its
+      state as commanded, so its proprioception shows no error while the camera shows the arm moving the wrong way.
+      The frozen OpenWAM-alpha policy misses the goal (red path). RetroWAM reads the executed motion from the camera with
+      the policy's own world action model, run in reverse, identifies the turned frame and corrects every command
+      (blue path). Then more tasks, under the turned frame and under a reversed gripper. Over all 40 LIBERO tasks,
+      success rises from 0 to 38 and from 4 to 39. Episodes are replayed from the simulator states recorded in two
+      deployments, one per error, in which RetroWAM's estimates carry over from episode to episode; playback at
+      3&times; speed.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Abstract</h2>
+    <p class="text">
+      A policy deployed on a new robot often meets a different action interface: a rotated command frame, another
+      gain, another orientation convention, an inverted gripper, or camera latency. When the robot also reports its
+      state in its own convention, commands and proprioception agree and only the camera shows the error, so
+      proprioceptive correction is blind, and point trackers miss orientation and gripper errors. We show that a world
+      action model (WAM) already carries the missing sensor: run in reverse on the real executed video, its video
+      pathway reads out the action the robot actually performed. Closed-form estimators on sent commands and these
+      readings identify the interface online and correct both the commands and the reported state, with no
+      calibration, training or extra hardware. We prove that the closed loop converges to the true interface although
+      every reading is pulled towards the policy's prior, and show that the estimates transfer to policies without any
+      video pathway and follow a robot whose interface changes during deployment. We evaluate on LIBERO with three WAM
+      backbones. On OpenWAM-alpha, success under an orientation-convention error rises from 21 to 40 of 40 tasks, under
+      a gripper flip from 3 to 38 and under a 45&deg; frame error from 11 to 38; where the robot reports in its own
+      convention, proprioception sees no error, while ours still recovers 40 and 39 of 40 tasks.
+    </p>
+  </section>
+
+  <section>
+    <h2>Who Can See the Error?</h2>
+    <p class="text">
+      Between a policy and the motors sits an <em>action interface</em>: the frame in which a translation is expressed,
+      the controller gain, the convention for rotation deltas, the polarity of the gripper command, and the delays of
+      camera and actuation. Such mismatches are mundane: two common robot drivers differ by 180&deg; in their base
+      frame, and training and evaluation code for the same policy can disagree on the gripper sign. A frozen policy can
+      fail completely under them.
+    </p>
+    <p class="text">
+      The robot also <em>reports</em> its state, and the report decides which sensor sees the error. If the true state
+      is reported (P), proprioception sees it. If the robot reports in its own convention (C), as a driver with
+      different conventions does, the reported motion equals the command, every proprioceptive residual is zero and
+      only the camera shows the error. If only the report is wrong (R), proprioception sees an error that is not there.
+      A point or flow tracker sees the end effector move the wrong way, but not a rotation about the end effector or a
+      reversed gripper. A readout of the executed action from video depends only on what the robot did, so it can
+      identify the interface in all three modes.
+    </p>
+  </section>
+
+  <section>
+    <h2>Method</h2>
+    <figure>
+      <img src="static/images/fig_pipeline.webp" width="2400" height="483" loading="lazy"
+           alt="RetroWAM pipeline: the policy's intent goes through the correction to the robot; after each executed window the frozen WAM's inverse pathway denoises actions from the real video latents; closed-form estimators compare these readings with the commands sent and update the correction.">
+      <figcaption>
+        After each executed window, the policy's own frozen WAM reads the executed action from the real video;
+        closed-form estimators compare the readings with the commands sent, and the correction inverts the identified
+        interface. Nothing is trained.
+      </figcaption>
+    </figure>
+    <ol class="three-steps">
+      <li><b>Read.</b> A WAM is trained to predict future video jointly with actions, so its video pathway implements
+        an inverse model. After every window of 32 executed steps, the real frames are encoded and held clean while the
+        action denoiser runs from noise. The result is a reading of what the robot actually did, in the policy's own
+        action units.</li>
+      <li><b>Estimate.</b> Closed-form estimators compare the readings with the commands that were sent: a similarity
+        for the frame and gain, orthogonal Procrustes for the orientation convention, sign agreement for the gripper,
+        the lag of the peak correlation for latency, and a test of the reported motion against the commands and the
+        video for the report convention.</li>
+      <li><b>Correct.</b> Every new chunk is mapped through the inverse of the identified interface before it is sent,
+        each plan is served from the identified lag, and the reported state is mapped back before the policy sees it.
+        No parameter is trained, no calibration routine is run, and the checkpoint is never modified.</li>
+    </ol>
+    <p class="text">
+      A reading is not an ordinary measurement. The WAM denoises actions consistent with both the video and its prior
+      over what the policy does, so when the executed motion is unusual, the reading is pulled towards what the policy
+      intended. We model each reading as a mixture of the executed and the intended action and prove that the corrected
+      loop has the true interface as its unique fixed point and contracts towards it; sign errors are identified in one
+      step when the evidence weight exceeds one half.
+    </p>
+    <figure class="half">
+      <img src="static/images/fig_readident.webp" width="1400" height="674" loading="lazy"
+           alt="Left: histograms of the rotation read per window: clean around 0 degrees, uncorrected readings around 31.6 degrees, ours around 44.6 degrees for a 45 degree frame. Right: frame estimate over 40 episodes converging to 44.5 degrees with correction, biased and unstable without.">
+      <figcaption>
+        Readings are pulled towards the intent until the loop corrects it (FastWAM, 45&deg; frame). (a) The rotation
+        read per 32-step window; uncorrected: the frozen policy, whose readings of the turned motion are pulled towards
+        the intent. (b) The frame estimate after every reading over a 40-episode deployment: with correction it
+        converges to the truth; on the uncorrected readings the same estimator stays biased and unstable.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Results</h2>
+    <p class="text">
+      We evaluate on LIBERO-Interface, a suite of action-interface errors under the three report modes, built on
+      LIBERO's four suites (40 tasks). The error is applied between the policy and the simulator in the evaluation
+      client, so the method has no access to its parameters. Baselines replace the reading by proprioception, image
+      motion or a trained inverse-dynamics model, or correct the policy from the reported state.
+    </p>
+
+    <p class="table-title">OpenWAM-alpha, 40 tasks (development split): successes out of 40</p>
+    <div class="table-wrap">
+      <table class="paper-table">
+      <thead><tr><th class="l">Cell</th><th>Frozen</th><th class="ours-h">RetroWAM</th><th>SC-VLA</th><th>ActionShift</th><th>RoboAda</th><th>Flow</th><th>Ideal pt.</th><th class="oracle">Oracle</th></tr></thead><tbody>
+      <tr><td class="l">Clean</td><td><b>40</b></td><td class="ours"><b>40</b></td><td><b>40</b></td><td>39</td><td>37</td><td><b>40</b></td><td><b>40</b></td><td class="oracle">40</td></tr>
+      <tr class="grp-start"><td class="l">A1 yaw 45&deg; (P)</td><td>11</td><td class="ours">38</td><td>9</td><td>38</td><td>6</td><td><b>40</b></td><td><b>40</b></td><td class="oracle">40</td></tr>
+      <tr><td class="l">A1 yaw 45&deg; (C)</td><td>14</td><td class="ours"><b>40</b></td><td>12</td><td>13</td><td>13</td><td>39</td><td><b>40</b></td><td class="oracle">40</td></tr>
+      <tr><td class="l">A1 convention 90&deg; (C)</td><td>0</td><td class="ours"><b>38</b></td><td>0</td><td>0</td><td>0</td><td>36</td><td><b>38</b></td><td class="oracle">39</td></tr>
+      <tr><td class="l">A1 convention 180&deg; (C)</td><td>0</td><td class="ours"><b>33</b></td><td>0</td><td>0</td><td>0</td><td>32</td><td>26</td><td class="oracle">40</td></tr>
+      <tr><td class="l">A2 hand-eye 45&deg; (C)</td><td>15</td><td class="ours"><b>40</b></td><td>21</td><td>15</td><td>16</td><td>38</td><td>39</td><td class="oracle">40</td></tr>
+      <tr class="grp-start"><td class="l">B1 gain 0.3 (P)</td><td>22</td><td class="ours">39</td><td>23</td><td>21</td><td>35</td><td>38</td><td><b>40</b></td><td class="oracle">36</td></tr>
+      <tr><td class="l">B1 gain 0.3 (C)</td><td>11</td><td class="ours">32</td><td>13</td><td>8</td><td>10</td><td>27</td><td><b>33</b></td><td class="oracle">36</td></tr>
+      <tr><td class="l">B2 power 2, yaw 45&deg; (P)</td><td>5</td><td class="ours"><b>35</b></td><td>1</td><td>28</td><td>7</td><td><b>35</b></td><td><b>35</b></td><td class="oracle">40</td></tr>
+      <tr><td class="l">B2 power 3, yaw 45&deg; (P)</td><td>3</td><td class="ours"><b>32</b></td><td>2</td><td>7</td><td>12</td><td>24</td><td>28</td><td class="oracle">39</td></tr>
+      <tr class="grp-start"><td class="l">C1-P orientation</td><td>21</td><td class="ours"><b>40</b></td><td>20</td><td>38</td><td>26</td><td>20</td><td>20</td><td class="oracle">40</td></tr>
+      <tr><td class="l">C2-P gripper</td><td>3</td><td class="ours"><b>38</b></td><td>4</td><td><b>38</b></td><td>3</td><td>3</td><td>4</td><td class="oracle">40</td></tr>
+      <tr><td class="l">C1-C orientation</td><td>28</td><td class="ours"><b>40</b></td><td>26</td><td>28</td><td>23</td><td>27</td><td>27</td><td class="oracle">40</td></tr>
+      <tr><td class="l">C2-C gripper</td><td>4</td><td class="ours"><b>39</b></td><td>4</td><td>6</td><td>5</td><td>4</td><td>3</td><td class="oracle">40</td></tr>
+      <tr><td class="l">C1-R orientation report</td><td>34</td><td class="ours"><b>38</b></td><td>34</td><td>24</td><td>24</td><td>35</td><td>35</td><td class="oracle">40</td></tr>
+      <tr><td class="l">C2-R gripper report</td><td><b>40</b></td><td class="ours"><b>40</b></td><td><b>40</b></td><td>3</td><td>38</td><td>38</td><td><b>40</b></td><td class="oracle">40</td></tr>
+      <tr class="grp-start"><td class="l">D1 camera latency 10 (P)</td><td>19</td><td class="ours"><b>35</b></td><td>18</td><td>17</td><td>16</td><td>3</td><td>11</td><td class="oracle">35</td></tr>
+      <tr><td class="l">F1 occlusion + yaw 45&deg; (P)</td><td>3</td><td class="ours">29</td><td>8</td><td>30</td><td>5</td><td><b>32</b></td><td>27</td><td class="oracle">32</td></tr>
+      </tbody></table>
+    </div>
+    <p class="table-note">
+      P: the true state is reported; C: the robot reports in its own convention; R: only the report is wrong. Bold
+      marks the best non-oracle result. SC-VLA: its best configuration run. ActionShift: its pool holds every cell's
+      execution map except the nonlinear B2 gains. RoboAda: released code and models, default configuration. Oracle:
+      the true interface inverted, an upper bound (gray, not ranked).
+    </p>
+    <p class="text" style="margin-top: 26px">
+      RetroWAM leaves clean episodes unharmed and lifts every command-interface error to 32&ndash;40 of 40 tasks
+      (frozen 0&ndash;28), 29 with the scene camera partly occluded. When the robot reports in its own convention,
+      the proprioceptive methods stay at the frozen level, and the trackers, which see only the end effector's image
+      motion, cannot see the orientation and gripper conventions. On the held-out test split (initial states
+      1&ndash;3, 120 paired episodes per cell, run after the configuration was frozen), RetroWAM solves 73&ndash;120
+      of 120 under every command-interface error (frozen 0&ndash;75).
+    </p>
+
+    <figure class="half">
+      <img src="static/images/fig_whosees.webp" width="1400" height="695" loading="lazy"
+           alt="Bar chart: with the true state reported, proprio, ActionShift and ours all recover frame, rotation and gripper errors; with the robot's own convention reported, only ours recovers them (95, 100 and 95 percent).">
+      <figcaption>
+        Only the video sees errors reported in the robot's own convention (FastWAM, 40 tasks). Proprio: our
+        estimators fed with the reported state instead of the reading.
+      </figcaption>
+    </figure>
+
+    <p class="table-title">Second and third backbones (development split)</p>
+    <div class="table-wrap">
+      <table class="paper-table">
+      <thead><tr><th rowspan="2" class="l">Cell</th><th colspan="4">FastWAM Optional IDM, of 40</th><th colspan="2">Fast-WAM release, of 40</th><th colspan="2">LingBot-VA, of 10</th></tr>
+      <tr><th>Frozen</th><th class="ours-h">E1</th><th class="ours-h">E3</th><th>Proprio</th><th>Frozen</th><th class="ours-h">E2</th><th>Frozen</th><th class="ours-h">E1</th></tr></thead><tbody>
+      <tr><td class="l">Clean</td><td><b>39</b></td><td class="ours"><b>39</b></td><td class="ours"><b>39</b></td><td><b>39</b></td><td><b>40</b></td><td class="ours"><b>40</b></td><td><b>10</b></td><td class="ours"><b>10</b></td></tr>
+      <tr><td class="l">A1 yaw 45&deg; (P)</td><td>3</td><td class="ours"><b>40</b></td><td class="ours">38</td><td>38</td><td>0</td><td class="ours"><b>35</b></td><td>0</td><td class="ours"><b>9</b></td></tr>
+      <tr><td class="l">A1 yaw 45&deg; (C)</td><td>3</td><td class="ours"><b>38</b></td><td class="ours">34</td><td>2</td><td>1</td><td class="ours"><b>30</b></td><td class="na">&ndash;</td><td class="ours na">&ndash;</td></tr>
+      <tr><td class="l">C1-P orientation</td><td>24</td><td class="ours"><b>39</b></td><td class="ours">38</td><td>38</td><td>19</td><td class="ours"><b>36</b></td><td>2</td><td class="ours"><b>10</b></td></tr>
+      <tr><td class="l">C2-P gripper</td><td>5</td><td class="ours"><b>39</b></td><td class="ours">36</td><td><b>39</b></td><td>3</td><td class="ours"><b>34</b></td><td>0</td><td class="ours"><b>10</b></td></tr>
+      <tr><td class="l">C1-C orientation</td><td>27</td><td class="ours"><b>40</b></td><td class="ours">37</td><td>23</td><td>24</td><td class="ours"><b>37</b></td><td class="na">&ndash;</td><td class="ours na">&ndash;</td></tr>
+      <tr><td class="l">C2-C gripper</td><td>5</td><td class="ours"><b>38</b></td><td class="ours">5</td><td>6</td><td><b>3</b></td><td class="ours"><b>3</b></td><td class="na">&ndash;</td><td class="ours na">&ndash;</td></tr>
+      </tbody></table>
+    </div>
+    <p class="table-note">
+      E1: RetroWAM, reading throughout. E3: reading in the first episode only, then fixed estimates, acting in
+      first-frame mode with no inverse pass. E2: the E3 estimates applied to the action-only Fast-WAM release, a policy
+      with no video pathway. LingBot-VA: LIBERO-Long, its only released LIBERO checkpoint; it takes no
+      proprioception, so its C rows are not run (&ndash;).
+    </p>
+    <p class="text" style="margin-top: 26px">
+      The interface is a property of the robot. Read once with the video pathway, it serves any policy that uses the
+      same action units: the estimates from FastWAM's first episode lift the action-only Fast-WAM release from
+      0&ndash;24 to 30&ndash;37 of 40 on the five cells that identify in one episode.
+    </p>
+
+    <figure class="half">
+      <img src="static/images/fig_bump.webp" width="1400" height="684" loading="lazy"
+           alt="Frame served over 560 reading windows: the true frame jumps from 0 to 45 degrees when the mount is bumped; ours follows it, faster with the optional change detection.">
+      <figcaption>
+        The robot changes during deployment: its frame turns by 45&deg; at episode 11 (FastWAM, 40 tasks). RetroWAM is
+        told nothing and solves 28 of the 30 episodes after the change, the frozen policy 2; with an optional change
+        detector the frame is re-identified at the third reading after the change.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Qualitative Results</h2>
+    <figure>
+      <img src="static/images/fig_teaser.webp" width="2400" height="723" loading="lazy"
+           alt="Left: a robot that executes every command turned by 90 degrees and reports it as commanded; the frozen WAM's path drifts off while RetroWAM reaches the basket. Right: six tasks, frozen WAM fails and RetroWAM succeeds under a turned frame and a reversed gripper.">
+      <figcaption>
+        A robot that does not do what the policy says. It executes every command turned by 90&deg; and reports its state
+        as commanded. The frozen OpenWAM-alpha misses the goal (red path); RetroWAM reads the executed motion from the
+        video with the policy's own WAM and corrects it (blue). Right: more tasks, under the turned frame and a reversed
+        gripper (dashed ring: goal).
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>BibTeX</h2>
+<pre class="bibtex"><code>@article{jiang2026retrowam,
+  title   = {RetroWAM: World Action Models Self-Calibrate Their Robots by Reading, Not Imagining},
+  author  = {Jiang, Austin},
+  year    = {2026}
+}</code></pre>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p>&copy; 2026 RetroWAM</p>
+</footer>
+
+</body>
+</html>
