@@ -9,12 +9,12 @@
   <meta property="og:title" content="RetroWAM: World Action Models Self-Calibrate Their Robots by Reading, Not Imagining">
   <meta property="og:description" content="A world action model, run in reverse on the real video, reads what the robot actually did and calibrates the robot online.">
   <meta property="og:url" content="https://retro-wam.github.io/">
-  <meta property="og:image" content="https://retro-wam.github.io/static/images/thumbnail.png?v=2">
+  <meta property="og:image" content="https://retro-wam.github.io/static/images/thumbnail.png?v=3">
   <meta property="og:image:width" content="2400">
   <meta property="og:image:height" content="1256">
   <meta property="og:image:alt" content="RetroWAM project page: title, author, and a frozen world action model next to RetroWAM on the same LIBERO task with the robot's command frame turned by 90 degrees">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://retro-wam.github.io/static/images/thumbnail.png?v=2">
+  <meta name="twitter:image" content="https://retro-wam.github.io/static/images/thumbnail.png?v=3">
   <link rel="icon" href="static/images/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,7 +65,7 @@
       The frozen OpenWAM-alpha policy misses the goal (red path). RetroWAM reads the executed motion from the camera with
       the policy's own world action model, run in reverse, identifies the turned frame and corrects every command
       (blue path). Then more tasks, under the turned frame and under a reversed gripper. Over all 40 LIBERO tasks,
-      success rises from 0 to 38 and from 4 to 39. Episodes are replayed from the simulator states recorded in two
+      success rises from 0 to 38 and from 3 to 39. Episodes are replayed from the simulator states recorded in two
       deployments, one per error, in which RetroWAM's estimates carry over from episode to episode; playback at
       3&times; speed.
       </figcaption>
@@ -86,7 +86,7 @@
       every reading is pulled towards the policy's prior, and show that the estimates transfer to policies without any
       video pathway and follow a robot whose interface changes during deployment. We evaluate on LIBERO with three WAM
       backbones. On OpenWAM-alpha, success under an orientation-convention error rises from 21 to 40 of 40 tasks, under
-      a gripper flip from 3 to 38 and under a 45&deg; frame error from 11 to 38; where the robot reports in its own
+      a gripper flip from 3 to 39 and under a 45&deg; frame error from 11 to 38; where the robot reports in its own
       convention, proprioception sees no error, while ours still recovers 40 and 39 of 40 tasks.
     </p>
   </section>
@@ -178,9 +178,9 @@
       <tr><td class="l">B2 power 2, yaw 45&deg; (P)</td><td>5</td><td class="ours"><b>35</b></td><td>1</td><td>28</td><td>7</td><td><b>35</b></td><td><b>35</b></td><td class="oracle">40</td></tr>
       <tr><td class="l">B2 power 3, yaw 45&deg; (P)</td><td>3</td><td class="ours"><b>32</b></td><td>2</td><td>7</td><td>12</td><td>24</td><td>28</td><td class="oracle">39</td></tr>
       <tr class="grp-start"><td class="l">C1-P orientation</td><td>21</td><td class="ours"><b>40</b></td><td>20</td><td>38</td><td>26</td><td>20</td><td>20</td><td class="oracle">40</td></tr>
-      <tr><td class="l">C2-P gripper</td><td>3</td><td class="ours"><b>38</b></td><td>4</td><td><b>38</b></td><td>3</td><td>3</td><td>4</td><td class="oracle">40</td></tr>
+      <tr><td class="l">C2-P gripper</td><td>3</td><td class="ours"><b>39</b></td><td>3</td><td>38</td><td>3</td><td>3</td><td>4</td><td class="oracle">40</td></tr>
       <tr><td class="l">C1-C orientation</td><td>28</td><td class="ours"><b>40</b></td><td>26</td><td>28</td><td>23</td><td>27</td><td>27</td><td class="oracle">40</td></tr>
-      <tr><td class="l">C2-C gripper</td><td>4</td><td class="ours"><b>39</b></td><td>4</td><td>6</td><td>5</td><td>4</td><td>3</td><td class="oracle">40</td></tr>
+      <tr><td class="l">C2-C gripper</td><td>3</td><td class="ours"><b>39</b></td><td>3</td><td>6</td><td>5</td><td>4</td><td>3</td><td class="oracle">40</td></tr>
       <tr><td class="l">C1-R orientation report</td><td>34</td><td class="ours"><b>38</b></td><td>34</td><td>24</td><td>24</td><td>35</td><td>35</td><td class="oracle">40</td></tr>
       <tr><td class="l">C2-R gripper report</td><td><b>40</b></td><td class="ours"><b>40</b></td><td><b>40</b></td><td>3</td><td>38</td><td>38</td><td><b>40</b></td><td class="oracle">40</td></tr>
       <tr class="grp-start"><td class="l">D1 camera latency 10 (P)</td><td>19</td><td class="ours"><b>35</b></td><td>18</td><td>17</td><td>16</td><td>3</td><td>11</td><td class="oracle">35</td></tr>
