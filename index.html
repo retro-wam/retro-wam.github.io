@@ -101,8 +101,10 @@
       the controller gain, the convention for rotation deltas, the polarity of the gripper command, and the delays of
       camera and actuation. A frozen policy can fail completely when it differs from the
       training robot's, and such mismatches are mundane:
-      two common robot drivers differ by 180&deg; in their base frame, and training and evaluation code for the same policy
-      can disagree on the gripper sign. 
+      two common robot drivers differ by 180&deg; in their base frame, and training and evaluation code for the same policy can disagree on the gripper sign. A mismatch does not
+      announce itself: a failed task does not say whether the interface is wrong or the policy fails to
+      generalize, and frame angles, gains and latencies take continuous values and combine, so there is no short list
+      of switches to try. 
     </p>
     <p class="text">
       The robot also <em>reports</em> its state, and the report decides which sensor sees the error. If the true state
