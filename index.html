@@ -132,7 +132,8 @@
       <li><b>Read.</b> A WAM is trained to predict future video jointly with actions, so its video pathway doubles as
         an inverse model. After every window of 32 executed steps, the real frames are encoded and held clean while the
         action denoiser runs from noise. The result is a reading of what the robot actually did, in the policy's own
-        action units.</li>
+        action units. No probing motion is added: until the first reading, the robot runs the policy's commands as a
+        frozen deployment would.</li>
       <li><b>Estimate.</b> Closed-form estimators compare the readings with the commands that were sent: a similarity
         for the frame and gain, orthogonal Procrustes for the orientation convention, sign agreement for the gripper,
         the lag of the peak correlation for latency, and a test of the reported motion against the commands and the
