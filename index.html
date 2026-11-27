@@ -78,30 +78,31 @@
   <section>
     <h2>Abstract</h2>
     <p class="text">
-      A policy deployed on a new robot often meets a different action interface: a rotated command frame, another
-      gain, another orientation convention, an inverted gripper, or camera latency. When the robot also reports its
-      state in its own convention, commands and proprioception agree and only the camera shows the error, so
-      proprioceptive correction is blind, and point trackers miss orientation and gripper errors. We show that a world
-      action model (WAM) already carries the missing sensor: run in reverse on the real executed video, its video
-      pathway reads out the action the robot actually performed. Closed-form estimators on sent commands and these
-      readings identify the interface online and correct both the commands and the reported state, with no
-      calibration, training or extra hardware. We prove that the closed loop converges to the true interface although
-      every reading is pulled towards the policy's prior, and show that the estimates transfer to policies without any
-      video pathway and follow a robot whose interface changes during deployment. We evaluate on LIBERO with three WAM
-      backbones. On OpenWAM-alpha, success under an orientation-convention error rises from 21 to 40 of 40 tasks, under
-      a gripper flip from 3 to 39 and under a 45&deg; frame error from 11 to 38; where the robot reports in its own
-      convention, proprioception sees no error, while ours still recovers 40 and 39 of 40 tasks.
+      Robot policies are often deployed on robots their developers never see, where the same command can produce a
+      different motion: the command frame is rotated, the gain differs, rotation deltas follow another convention, the
+      gripper is inverted, or the camera lags. If the robot also reports its state in its own convention, the state matches the commands and only the camera shows the error:
+      proprioceptive correction is blind, and point trackers miss orientation and gripper errors. We show that a world action model
+      (WAM) already contains the missing sensor: run in reverse on the real video, its video pathway reads out the
+      action the robot performed. We propose RetroWAM, which uses closed-form estimators to compare these readings with the commands sent, identify the interface online, and correct both the commands and the reported state, with no calibration, training or extra hardware. We prove that, in expectation, the corrected translation estimate converges to the true interface whenever each fit is invertible, even though every reading is pulled towards the policy's prior. We also show that the estimates transfer to policies without any
+      video pathway and follow a robot whose interface changes during deployment. Across three WAM backbones on LIBERO, the frozen policy fails most tasks under most errors,
+      and corrections that read the reported state barely improve on it when the robot reports in its own convention.
+      RetroWAM identifies the errors from the video and recovers most of the lost success under every one of them,
+      even when proprioception sees no error.
     </p>
   </section>
 
   <section>
     <h2>Who Can See the Error?</h2>
     <p class="text">
-      Between a policy and the motors sits an <em>action interface</em>: the frame in which a translation is expressed,
+      Robot policies are often deployed on robots their developers never see: one model is released or served to
+      many robots, the units of a fleet differ in mount, tool, controller tuning and camera, and a firmware update,
+      tool change or new camera alters a robot during deployment. Between a policy and the motors sits an
+      <em>action interface</em>: the frame in which a translation is expressed,
       the controller gain, the convention for rotation deltas, the polarity of the gripper command, and the delays of
-      camera and actuation. Such mismatches are mundane: two common robot drivers differ by 180&deg; in their base
-      frame, and training and evaluation code for the same policy can disagree on the gripper sign. A frozen policy can
-      fail completely under them.
+      camera and actuation. A frozen policy can fail completely when it differs from the
+      training robot's, and such mismatches are mundane:
+      two common robot drivers differ by 180&deg; in their base frame, and training and evaluation code for the same policy
+      can disagree on the gripper sign. 
     </p>
     <p class="text">
       The robot also <em>reports</em> its state, and the report decides which sensor sees the error. If the true state
@@ -126,7 +127,7 @@
       </figcaption>
     </figure>
     <ol class="three-steps">
-      <li><b>Read.</b> A WAM is trained to predict future video jointly with actions, so its video pathway implements
+      <li><b>Read.</b> A WAM is trained to predict future video jointly with actions, so its video pathway doubles as
         an inverse model. After every window of 32 executed steps, the real frames are encoded and held clean while the
         action denoiser runs from noise. The result is a reading of what the robot actually did, in the policy's own
         action units.</li>
@@ -194,7 +195,7 @@
       P: the true state is reported; C: the robot reports in its own convention; R: only the report is wrong. Bold
       marks the best non-oracle result. SC-VLA: its best configuration run. ActionShift: its pool holds every cell's
       execution map except the nonlinear B2 gains. RoboAda: released code and models, default configuration. Oracle:
-      the true interface inverted, an upper bound (gray, not ranked).
+      the true interface inverted and clipped to the action box, a ground-truth reference (gray, not ranked).
     </p>
     <p class="text" style="margin-top: 26px">
       RetroWAM leaves clean episodes unharmed and lifts every command-interface error to 32&ndash;40 of 40 tasks
